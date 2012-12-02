@@ -17,5 +17,10 @@ LICENSE INFORMATION:
 DOCUMENTATION:
     see the pod in Pager.pm
 
+WARNING:
+    this module uses Termcap, which has been deprecated
+    the Open Group, and may not be supported by your
+    operating system for much longer.
+
 AUTHOR:
     Jeff Weisberg  - http://www.tcp4me.com/

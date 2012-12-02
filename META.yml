@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Term-Pager
-version:            1.01
+version:            1.02
 abstract:           Page through text, a screenful at a time, like more or less
 author:
     - Jeff Weisberg <http://www.tcp4me.com/>

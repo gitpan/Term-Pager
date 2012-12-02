@@ -68,7 +68,7 @@ Or add text later:
     ;
 
 package Term::Pager;
-$VERSION = '1.01';
+$VERSION = '1.02';
 
 use Term::Cap;
 use strict;
@@ -202,7 +202,7 @@ sub prompt {
     my $me = shift;
 
     my $pct = ($me->{nl} > 1) ? 100*$me->{end}/($me->{nl}-1) : 100;
-    my $p = sprintf "[more] %d%% %s %s", $pct),
+    my $p = sprintf "[more] %d%% %s %s", $pct,
     ($me->{start} ? ($me->{end}==$me->{nl}-1) ? 'Bottom' : '' : 'Top'), $me->{msg};
 
     my $p2 = "  <space>=down <b>=back <h>=help <q>=quit";
