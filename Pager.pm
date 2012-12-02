@@ -5,7 +5,7 @@
 # Created: 2004-Jun-03 10:24 (EDT)
 # Function: pager like more/less
 #
-# $Id: Pager.pm,v 1.3 2004/06/08 14:30:42 jaw Exp jaw $
+# $Id: Pager.pm,v 1.4 2012/12/02 18:06:46 jaw Exp $
 
 =head1 NAME
 
@@ -14,7 +14,7 @@ Term::Pager - Page through text, a screenful at a time, like more or less
 =head1 SYNOPSIS
 
     use Term::Pager;
-    
+
     my $t = Term::Pager->new( rows => 25, cols => 80 );
     $t->add_text( $text );
     $t->more();
@@ -40,7 +40,7 @@ The following options are recognized:
 
 The number of rows on your terminal.
 This defaults to 25.
-    
+
 =item C<cols>
 
 The number of columns on your terminal.
@@ -50,11 +50,11 @@ This defaults to 80.
 
 The speed (baud rate) of your terminal. Will default
 to a sensible value.
-    
+
 =back
 
 =head2 Adding Text
-    
+
 You will need some text to page through. You can specify text as
 as a parameter to the constructor:
 
@@ -68,7 +68,7 @@ Or add text later:
     ;
 
 package Term::Pager;
-$VERSION = '1.00';
+$VERSION = '1.01';
 
 use Term::Cap;
 use strict;
@@ -76,15 +76,15 @@ use strict;
 sub new {
     my $class = shift;
     my %param = @_;
-    
+
     my $t = Term::Cap->Tgetent({ OSPEED => ($param{speed} || 38400) });
     my $dumbp;
-    
+
     eval{
 	$t->Trequire(qw/cm ce cl sf sr/);
     };
     $dumbp = 1 if $@;
-    
+
     my $me = bless {
 	# default values
 	term  => $t,
@@ -124,7 +124,7 @@ sub new {
 
     $me;
 }
-    
+
 sub add_text {
     my $me = shift;
     my $tx = shift;
@@ -144,14 +144,14 @@ sub more {
     my $me = shift;
     my $sp = $|;
     my $t = $me->{term};
-    
+
     $me->{L} = $me->{rows} - 1;
     $me->{l} = [ split /\n/, $me->{text} ];
     $me->{nl}= @{ $me->{l} };
-    
+
     $me->{start} = 0;
     $me->{end}   = $me->{L} - 1;
-    
+
     $SIG{INT} = $SIG{QUIT} = \&done;
     system('stty -icanon -echo min 1');
     $| = 1;
@@ -162,20 +162,20 @@ sub more {
 	}else{
 	    print $me->{NO};
 	    $me->refresh();
-	    
+
 	    while(1){
 		print $t->Tgoto('cm', 0, $me->{L});	# bottom left
 		print $t->Tputs('ce');			# clear line
-		
+
 		print $me->{ML};			# reverse video
 		$me->prompt();
 		print $me->{NO};			# normal video
-		
+
 		my $q = getc();
-		
+
 		print $t->Tgoto('cm', 0, $me->{L});	# bottom left
 		print $t->Tputs('ce');			# clear line
-		
+
 		$me->{msg} = '';
 		my $f = $me->{fnc}->{lc($q)} || \&beep;
 		$f->($me);
@@ -200,12 +200,13 @@ sub beep { print "\a" }
 # display a prompt, etc
 sub prompt {
     my $me = shift;
-    
-    my $p = sprintf "[more] %d%% %s %s", (100*$me->{end}/($me->{nl}-1)),
+
+    my $pct = ($me->{nl} > 1) ? 100*$me->{end}/($me->{nl}-1) : 100;
+    my $p = sprintf "[more] %d%% %s %s", $pct),
     ($me->{start} ? ($me->{end}==$me->{nl}-1) ? 'Bottom' : '' : 'Top'), $me->{msg};
-    
+
     my $p2 = "  <space>=down <b>=back <h>=help <q>=quit";
-    
+
     $p .= ' ' x ($me->{cols} - 2 - length($p) - length($p2));
 
     print $p,$p2;
@@ -220,7 +221,7 @@ sub box_text {
     my $me  = shift;
     my $txt = shift;
     my $l;
-    
+
     my @l = split /\n/, $txt;
     foreach (@l){ $l = length($_) if length($_) > $l };
     my $b = '+' . '=' x ($l + 2) . '+';
@@ -232,13 +233,13 @@ sub box_text {
 # provide help to user
 sub help {
     my $me = shift;
-    
+
     my $help = $me->box_text(<<EOH);
  q      quit                    h      help
  /      search
  space  page down               b      page up
  enter  line down               y      line up
- d      half page down          u      half page up 
+ d      half page down          u      half page up
  0      goto top                g      goto bottom
  <      scroll left             >      scroll right
 
@@ -249,7 +250,7 @@ EOH
     $me->disp_menu( $help );
     getc();
     $me->remove_menu();
-    
+
 }
 
 # display a popup menu (or other text)
@@ -257,13 +258,13 @@ sub disp_menu {
     my $me = shift;
     my $menu = shift;
     my $t = $me->{term};
-    
+
     my $nl = @{[split /\n/, $menu]};
     $me->{menu_nl} = $nl;
-    
+
     print $t->Tgoto('cm', 0, $me->{L} - $nl);		# move
     print $me->{MN};					# set color
-    
+
     my $x = $t->Tgoto('RI', 0,4);			# 4 transparent spaces
     $menu =~ s/^\s*/$x/gm;
     print $menu;
@@ -304,9 +305,9 @@ sub prline {
     my $len = length($line);
     $line = substr($line, $me->{left}, $me->{cols});
     if( $len - $me->{left} > $me->{cols} ){
-	substr($line, -1, 1, "\$"); 
+	substr($line, -1, 1, "\$");
     }
-    
+
     if( $me->{search} ne '' ){
 	my $s = $me->{HI};
 	my $e = $me->{NO};
@@ -327,7 +328,7 @@ sub down_lines {
     my $me = shift;
     my $n  = shift;
     my $t  = $me->{term};
-    
+
     for (1 .. $n){
 	if( $me->{end} >= $me->{nl}-1 ){
 	    print "\a";
@@ -364,7 +365,7 @@ sub up_lines {
     my $me = shift;
     my $n  = shift;
     my $t  = $me->{term};
-    
+
     for (1 .. $n){
 	if( $me->{start} <= 0 ){
 	    print "\a";
@@ -430,7 +431,7 @@ sub move_left {
 sub search {
     my $me = shift;
     my $t  = $me->{term};
-    
+
     # get pattern
     my $prev = $me->{search};
     $me->{search}  = '';
@@ -439,7 +440,7 @@ sub search {
     print $t->Tputs('ce');				# clear line
     print $me->{SE};					# set color
     print "/";
-    
+
     while(1){
 	my $l = getc();
 	last if $l eq "\n" || $l eq "\r";
@@ -459,9 +460,9 @@ sub search {
     print $t->Tgoto('cm', 0, $me->{L});			# move bottom
     print $t->Tputs('ce');				# clear line
     return if $me->{search} eq '';
-    
+
     $me->{search} = $prev if $me->{search} eq '/' && $prev;
-    
+
     for my $n ( $me->{start} .. $me->{nl}-1 ){
 	next unless $me->{l}[$n] =~ /$me->{search}/;
 
@@ -475,7 +476,7 @@ sub search {
 	    $me->{start} -= $x;
 	    $me->{end}   -= $x;
 	}
-	
+
 	$me->refresh();
 	return;
     }
@@ -486,14 +487,14 @@ sub search {
     sleep 1;
     $me->remove_menu();
     return;
-    
+
 }
 
 
 sub dumb_mode {
     my $me = shift;
     my $end = 0;
-    
+
     while(1){
 	for my $i (1 .. $me->{rows} - 1){
 	    last if $end >= $me->{nl};
@@ -503,7 +504,7 @@ sub dumb_mode {
 	print "--more [dumb]--";
 	my $a = getc();
 	print "\b \b"x15;
-	
+
 	return if $a eq 'q';
 	return if $end >= $me->{nl};
     }
@@ -528,4 +529,3 @@ with unintelligible gibberish, or drop back to a feature-free mode.
 
 =cut
     ;
-
